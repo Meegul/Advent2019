@@ -81,39 +81,6 @@ const equal = (state: number[], modes: ParameterMode[], x: number, y: number, z:
   state[z] = x1 === y1 ? 1 : 0;
   return state;
 }
-const process = (state: number[], position: number): number[] => {
-  const { parameterModes , ...operator} = decodeOperator(state[position]) ;
-  if (operator.op === OperatorType.HALT) {
-    return state;
-  }
-  const nextPosition = position + operator.numParameters + 1;
-  if (operator.op === OperatorType.ADD) {
-    return process(
-      add(state, parameterModes, state[position+1], state[position+2], state[position+3]),
-      nextPosition
-    );
-  } else if (operator.op === OperatorType.MULTIPLY) {
-    return process(
-      multiply(state, parameterModes, state[position+1], state[position+2], state[position+3]),
-      nextPosition
-    );
-  } else if (operator.op === OperatorType.INPUT) {
-    return process(ioIn(state, state[position+1]), nextPosition);
-  } else if (operator.op === OperatorType.OUTPUT) {
-    return process(ioOut(state, parameterModes[0], state[position+1]), nextPosition);
-  } else if (operator.op === OperatorType.JIT) {
-    return process(state, jumpIfTrue(state, parameterModes, state[position+1], state[position+2], nextPosition));
-  } else if (operator.op === OperatorType.JIF) {
-    return process(state, jumpIfFalse(state, parameterModes, state[position+1], state[position+2], nextPosition));
-  } else if (operator.op === OperatorType.LT) {
-    return process(lessThan(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
-  } else if (operator.op === OperatorType.EQ) {
-    return process(equal(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
-  } {
-    console.error(`Unrecognized op: ${operator.op} @ ${position}`);
-    return state;
-  }
-};
 
 const decodeOperator = (code: number): Operator => {
   if (code === OperatorType.HALT) {
@@ -157,10 +124,34 @@ const decodeOperator = (code: number): Operator => {
   };
 };
 
-const parseIntCodes = (input: string) => {
-  return input.split(",").map((el: string) => parseInt(el));
+const process = (state: number[], position: number): number[] => {
+  const { parameterModes , op, numParameters} = decodeOperator(state[position]) ;
+  if (op === OperatorType.HALT) {
+    return state;
+  }
+  const nextPosition = position + numParameters + 1;
+  if (op === OperatorType.ADD) {
+    return process(add(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
+  } else if (op === OperatorType.MULTIPLY) {
+    return process(multiply(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
+  } else if (op === OperatorType.INPUT) {
+    return process(ioIn(state, state[position+1]), nextPosition);
+  } else if (op === OperatorType.OUTPUT) {
+    return process(ioOut(state, parameterModes[0], state[position+1]), nextPosition);
+  } else if (op === OperatorType.JIT) {
+    return process(state, jumpIfTrue(state, parameterModes, state[position+1], state[position+2], nextPosition));
+  } else if (op === OperatorType.JIF) {
+    return process(state, jumpIfFalse(state, parameterModes, state[position+1], state[position+2], nextPosition));
+  } else if (op === OperatorType.LT) {
+    return process(lessThan(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
+  } else if (op === OperatorType.EQ) {
+    return process(equal(state, parameterModes, state[position+1], state[position+2], state[position+3]), nextPosition);
+  } {
+    console.error(`Unrecognized op: ${op} @ ${position}`);
+    return state;
+  }
 };
 
 const input = fs.readFileSync('5.2.txt').toString();
-const initialState = parseIntCodes(input);
+const initialState = input.split(",").map((el: string) => parseInt(el));
 process(initialState, 0);
